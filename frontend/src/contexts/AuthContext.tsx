@@ -33,7 +33,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const queryClient = useQueryClient();
 
-  // Query to get current user
+  // Query to get current user - only if token exists
+  const hasToken = !!localStorage.getItem('accessToken');
+  
   const { data: userData, isLoading } = useQuery({
     queryKey: ['auth', 'me'],
     queryFn: async () => {
@@ -43,11 +45,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       } catch (error: any) {
         // If 401, user is not authenticated
         if (error.response?.status === 401) {
+          localStorage.removeItem('accessToken');
           return null;
         }
         throw error;
       }
     },
+    enabled: hasToken, // Only run query if token exists
     retry: (failureCount, error: any) => {
       // Don't retry on 401 errors
       if (error?.response?.status === 401) {
@@ -56,6 +60,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       return failureCount < 2;
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
+    refetchOnWindowFocus: false, // Don't refetch on window focus
+    refetchOnMount: false, // Don't refetch on mount if data exists
   });
 
   // Update user state when query data changes
