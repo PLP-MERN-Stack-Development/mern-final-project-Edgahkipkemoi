@@ -11,6 +11,7 @@
         "test:watch": "jest --watch --detectOpenHandles",
         "test:coverage": "jest --coverage --detectOpenHandles",
         "seed": "ts-node src/scripts/seed.ts",
+        "seed:exercises": "ts-node src/scripts/seedExercises.ts",
         "lint": "eslint src/**/*.ts",
         "lint:fix": "eslint src/**/*.ts --fix"
     },

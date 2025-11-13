@@ -357,7 +357,7 @@ export const getUserFollowing = asyncHandler(async (req: AuthenticatedRequest, r
 });
 
 /**
- * @desc    Get user dashboard stats
+ * @desc    Get dashboard data with streak tracking
  * @route   GET /api/users/dashboard
  * @access  Private
  */
@@ -368,44 +368,85 @@ export const getDashboard = asyncHandler(async (req: AuthenticatedRequest, res: 
 
     const userId = req.user.id;
 
-    // Get workout stats
-    const totalWorkouts = await Workout.countDocuments({ user: userId, isTemplate: false });
-    const thisWeekStart = new Date();
-    thisWeekStart.setDate(thisWeekStart.getDate() - thisWeekStart.getDay());
-    thisWeekStart.setHours(0, 0, 0, 0);
+    // Get user with streak info
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new AppError('User not found', 404);
+    }
 
-    const thisWeekWorkouts = await Workout.countDocuments({
-        user: userId,
-        isTemplate: false,
-        date: { $gte: thisWeekStart },
+    // Calculate date ranges
+    const now = new Date();
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // Get workout stats with parallel queries
+    const [
+        totalWorkouts,
+        thisWeekWorkouts,
+        thisMonthWorkouts,
+        totalGoals,
+        completedGoals,
+        activeGoals,
+        recentWorkouts,
+        upcomingGoals,
+        weeklyWorkoutData
+    ] = await Promise.all([
+        Workout.countDocuments({ user: userId, isTemplate: false }),
+        Workout.countDocuments({ user: userId, isTemplate: false, date: { $gte: startOfWeek } }),
+        Workout.countDocuments({ user: userId, isTemplate: false, date: { $gte: startOfMonth } }),
+        Goal.countDocuments({ user: userId }),
+        Goal.countDocuments({ user: userId, isCompleted: true }),
+        Goal.countDocuments({ user: userId, isCompleted: false }),
+        Workout.find({ user: userId, isTemplate: false })
+            .sort({ date: -1 })
+            .limit(5)
+            .select('name date duration caloriesBurned')
+            .lean(),
+        Goal.find({
+            user: userId,
+            isCompleted: false,
+            targetDate: { $gte: now }
+        })
+            .sort({ targetDate: 1 })
+            .limit(5)
+            .select('title targetDate currentValue targetValue unit')
+            .lean(),
+        // Get workouts for the last 7 days
+        Workout.aggregate([
+            {
+                $match: {
+                    user: user._id,
+                    isTemplate: false,
+                    date: { $gte: startOfWeek }
+                }
+            },
+            {
+                $group: {
+                    _id: { $dayOfWeek: '$date' },
+                    count: { $sum: 1 },
+                    totalDuration: { $sum: '$duration' },
+                    totalCalories: { $sum: '$caloriesBurned' }
+                }
+            }
+        ])
+    ]);
+
+    // Format weekly data for chart
+    const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const weeklyData = weekDays.map((day, index) => {
+        const dayData = weeklyWorkoutData.find((d: any) => d._id === index + 1);
+        return {
+            day,
+            workouts: dayData?.count || 0,
+            duration: dayData?.totalDuration || 0,
+            calories: dayData?.totalCalories || 0
+        };
     });
 
-    // Get goal stats
-    const totalGoals = await Goal.countDocuments({ user: userId });
-    const completedGoals = await Goal.countDocuments({ user: userId, isCompleted: true });
-    const activeGoals = await Goal.countDocuments({
-        user: userId,
-        isCompleted: false,
-        targetDate: { $gte: new Date() }
-    });
-
-    // Get recent workouts
-    const recentWorkouts = await Workout.find({ user: userId, isTemplate: false })
-        .populate('exercises.exercise', 'name category')
-        .sort({ date: -1 })
-        .limit(5);
-
-    // Get upcoming goals (due within 30 days)
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-
-    const upcomingGoals = await Goal.find({
-        user: userId,
-        isCompleted: false,
-        targetDate: { $lte: thirtyDaysFromNow, $gte: new Date() },
-    })
-        .sort({ targetDate: 1 })
-        .limit(5);
+    const completionRate = totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0;
 
     const response: ApiResponse = {
         success: true,
@@ -414,16 +455,23 @@ export const getDashboard = asyncHandler(async (req: AuthenticatedRequest, res: 
             workoutStats: {
                 total: totalWorkouts,
                 thisWeek: thisWeekWorkouts,
+                thisMonth: thisMonthWorkouts
             },
             goalStats: {
                 total: totalGoals,
                 completed: completedGoals,
                 active: activeGoals,
-                completionRate: totalGoals > 0 ? Math.round((completedGoals / totalGoals) * 100) : 0,
+                completionRate
+            },
+            streakStats: {
+                current: user.currentStreak,
+                longest: user.longestStreak,
+                totalWorkouts: user.totalWorkoutsCompleted
             },
             recentWorkouts,
             upcomingGoals,
-        },
+            weeklyData
+        }
     };
 
     res.json(response);

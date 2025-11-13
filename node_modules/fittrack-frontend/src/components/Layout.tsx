@@ -29,6 +29,7 @@ const Layout: React.FC = () => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
     { name: 'Workouts', href: '/workouts', icon: Dumbbell },
+    { name: 'Workout Guides', href: '/workout-guides', icon: Activity },
     { name: 'Exercises', href: '/exercises', icon: Activity },
     { name: 'Goals', href: '/goals', icon: Target },
     { name: 'Social', href: '/social', icon: Users },

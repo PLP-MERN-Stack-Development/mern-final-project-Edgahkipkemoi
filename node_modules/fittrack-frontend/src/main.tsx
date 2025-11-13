@@ -8,6 +8,8 @@ import { Toaster } from 'react-hot-toast'
 import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
+import { ThemeProvider } from './contexts/ThemeContext'
+import SplashScreen from './components/SplashScreen'
 import './index.css'
 
 // Create a client for React Query
@@ -33,10 +35,12 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <SocketProvider>
-            <App />
-            <Toaster
+        <ThemeProvider>
+          <AuthProvider>
+            <SocketProvider>
+              <SplashScreen />
+              <App />
+              <Toaster
               position="top-right"
               toastOptions={{
                 duration: 4000,
@@ -62,8 +66,9 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 },
               }}
             />
-          </SocketProvider>
-        </AuthProvider>
+            </SocketProvider>
+          </AuthProvider>
+        </ThemeProvider>
         {/* {process.env.NODE_ENV === 'development' && (
           <ReactQueryDevtools initialIsOpen={false} />
         )} */}

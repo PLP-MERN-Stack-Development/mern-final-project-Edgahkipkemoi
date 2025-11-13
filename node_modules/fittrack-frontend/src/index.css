@@ -9,10 +9,11 @@
 
     body {
         @apply bg-gray-50 text-gray-900 antialiased;
+        @apply dark:bg-gray-900 dark:text-gray-100;
     }
 
     * {
-        @apply border-gray-200;
+        @apply border-gray-200 dark:border-gray-700;
     }
 }
 
@@ -51,10 +52,12 @@
 
     .card {
         @apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+        @apply dark:bg-gray-800 dark:border-gray-700;
     }
 
     .card-header {
         @apply flex items-center justify-between pb-4 mb-4 border-b border-gray-200;
+        @apply dark:border-gray-700;
     }
 
     .badge {
@@ -102,15 +105,15 @@
 }
 
 ::-webkit-scrollbar-track {
-    @apply bg-gray-100;
+    @apply bg-gray-100 dark:bg-gray-800;
 }
 
 ::-webkit-scrollbar-thumb {
-    @apply bg-gray-300 rounded-full;
+    @apply bg-gray-300 dark:bg-gray-600 rounded-full;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-400;
+    @apply bg-gray-400 dark:bg-gray-500;
 }
 
 /* Focus styles for accessibility */

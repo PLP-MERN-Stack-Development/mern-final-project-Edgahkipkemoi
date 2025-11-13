@@ -40,13 +40,16 @@ export const getWorkouts = asyncHandler(async (req: AuthenticatedRequest, res: R
         if (endDate) query.date.$lte = new Date(endDate);
     }
 
-    const workouts = await Workout.find(query)
-        .populate('exercises.exercise', 'name category muscleGroups difficulty')
-        .sort({ date: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-
-    const total = await Workout.countDocuments(query);
+    // Use Promise.all for parallel execution and lean() for better performance
+    const [workouts, total] = await Promise.all([
+        Workout.find(query)
+            .populate('exercises.exercise', 'name category muscleGroups difficulty')
+            .sort({ date: -1, createdAt: -1 })
+            .skip(skip)
+            .limit(limit)
+            .lean(),
+        Workout.countDocuments(query)
+    ]);
 
     const response: ApiResponse = {
         success: true,
@@ -128,6 +131,17 @@ export const createWorkout = asyncHandler(async (req: AuthenticatedRequest, res:
     });
 
     await workout.populate('exercises.exercise', 'name category muscleGroups difficulty');
+
+    // Update user's workout count and streak if not a template
+    if (!isTemplate) {
+        const user = await import('../models/User').then(m => m.default.findById(req.user!.id));
+        if (user) {
+            user.totalWorkoutsCompleted += 1;
+            const { updateUserStreak } = await import('../utils/streakHelper');
+            updateUserStreak(user);
+            await user.save();
+        }
+    }
 
     const response: ApiResponse = {
         success: true,

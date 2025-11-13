@@ -90,6 +90,22 @@ const userSchema = new Schema<IUser>({
         type: Schema.Types.ObjectId,
         ref: 'User',
     }],
+    // Streak tracking
+    currentStreak: {
+        type: Number,
+        default: 0,
+    },
+    longestStreak: {
+        type: Number,
+        default: 0,
+    },
+    lastActivityDate: {
+        type: Date,
+    },
+    totalWorkoutsCompleted: {
+        type: Number,
+        default: 0,
+    },
 }, {
     timestamps: true,
     toJSON: {
@@ -101,9 +117,7 @@ const userSchema = new Schema<IUser>({
     },
 });
 
-// Indexes for better query performance
-userSchema.index({ email: 1 });
-userSchema.index({ username: 1 });
+// Indexes for better query performance (unique indexes already defined in schema)
 userSchema.index({ createdAt: -1 });
 
 // Pre-save middleware to hash password

@@ -19,6 +19,10 @@ export interface IUser extends Document {
     refreshTokens: string[];
     followers: Types.ObjectId[];
     following: Types.ObjectId[];
+    currentStreak: number;
+    longestStreak: number;
+    lastActivityDate?: Date;
+    totalWorkoutsCompleted: number;
     createdAt: Date;
     updatedAt: Date;
     comparePassword(candidatePassword: string): Promise<boolean>;

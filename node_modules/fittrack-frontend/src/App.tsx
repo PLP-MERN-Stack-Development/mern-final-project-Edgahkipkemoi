@@ -12,6 +12,7 @@ import RegisterPage from '@/pages/auth/RegisterPage';
 import DashboardPage from '@/pages/DashboardPage';
 import WorkoutsPage from '@/pages/WorkoutsPage';
 import WorkoutDetailPage from '@/pages/WorkoutDetailPage';
+import WorkoutGuidesPage from '@/pages/WorkoutGuidesPage';
 import ExercisesPage from '@/pages/ExercisesPage';
 import GoalsPage from '@/pages/GoalsPage';
 import SocialPage from '@/pages/SocialPage';
@@ -66,7 +67,7 @@ const PublicRoute: React.FC<PublicRouteProps> = ({ children }) => {
 
 const App: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Routes>
         {/* Public Routes */}
         <Route
@@ -102,6 +103,7 @@ const App: React.FC = () => {
           <Route path="dashboard" element={<DashboardPage />} />
           <Route path="workouts" element={<WorkoutsPage />} />
           <Route path="workouts/:id" element={<WorkoutDetailPage />} />
+          <Route path="workout-guides" element={<WorkoutGuidesPage />} />
           <Route path="exercises" element={<ExercisesPage />} />
           <Route path="goals" element={<GoalsPage />} />
           <Route path="social" element={<SocialPage />} />

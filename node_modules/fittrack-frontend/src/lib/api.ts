@@ -8,7 +8,7 @@ import { ApiResponse } from '@/types';
 
 // Create axios instance with base configuration
 const api: AxiosInstance = axios.create({
-    baseURL: import.meta.env.VITE_API_URL || '/api',
+    baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
     timeout: 10000,
     withCredentials: true, // Important for cookies
     headers: {
@@ -117,6 +117,7 @@ export const authAPI = {
 export const userAPI = {
     getProfile: () => apiClient.get('/users/profile'),
     updateProfile: (data: any) => apiClient.put('/users/profile', data),
+    getDashboard: () => apiClient.get('/users/dashboard'),
     getUser: (identifier: string) => apiClient.get(`/users/${identifier}`),
     searchUsers: (query: string, params?: any) => apiClient.get('/users/search', { q: query, ...params }),
     followUser: (userId: string) => apiClient.post(`/users/${userId}/follow`),

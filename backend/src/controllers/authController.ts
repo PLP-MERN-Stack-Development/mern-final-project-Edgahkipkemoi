@@ -16,6 +16,8 @@ import { asyncHandler, AppError } from '../middleware/errorHandler';
 export const register = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { username, email, password, firstName, lastName } = req.body;
 
+    console.log('📝 Registration attempt:', { username, email, firstName, lastName });
+
     // Check if user already exists
     const existingUser = await User.findOne({
         $or: [{ email: email.toLowerCase() }, { username }],
@@ -23,6 +25,7 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
 
     if (existingUser) {
         const field = existingUser.email === email.toLowerCase() ? 'email' : 'username';
+        console.log('❌ Registration failed: User already exists', field);
         throw new AppError(`User with this ${field} already exists`, 400);
     }
 
@@ -35,6 +38,8 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
         lastName,
     });
 
+    console.log('✅ User created successfully:', user._id);
+
     // Generate tokens
     const tokens = user.generateTokens();
 
@@ -42,18 +47,20 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
     user.refreshTokens.push(tokens.refreshToken);
     await user.save();
 
+    console.log('🔑 Tokens generated and saved');
+
     // Set HTTP-only cookies for security
     res.cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -73,6 +80,7 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
         },
     };
 
+    console.log('✅ Registration successful, sending response');
     res.status(201).json(response);
 });
 
@@ -84,6 +92,8 @@ export const register = asyncHandler(async (req: Request, res: Response): Promis
 export const login = asyncHandler(async (req: Request, res: Response): Promise<void> => {
     const { identifier, password } = req.body;
 
+    console.log('🔐 Login attempt:', { identifier });
+
     // Find user by email or username (including password for comparison)
     const user = await User.findOne({
         $or: [
@@ -92,9 +102,25 @@ export const login = asyncHandler(async (req: Request, res: Response): Promise<v
         ],
     }).select('+password');
 
-    if (!user || !(await user.comparePassword(password))) {
+    if (!user) {
+        console.log('❌ Login failed: User not found');
         throw new AppError('Invalid credentials', 401);
     }
+
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+        console.log('❌ Login failed: Invalid password');
+        throw new AppError('Invalid credentials', 401);
+    }
+
+    console.log('✅ User authenticated:', user._id);
+
+    // Update streak on login
+    const { updateUserStreak } = await import('../utils/streakHelper');
+    const streakInfo = updateUserStreak(user);
+    await user.save();
+
+    console.log('📊 Streak updated:', streakInfo);
 
     // Generate tokens
     const tokens = user.generateTokens();
@@ -103,18 +129,20 @@ export const login = asyncHandler(async (req: Request, res: Response): Promise<v
     user.refreshTokens.push(tokens.refreshToken);
     await user.save();
 
+    console.log('🔑 Tokens generated and saved');
+
     // Set HTTP-only cookies
     res.cookie('accessToken', tokens.accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
     res.cookie('refreshToken', tokens.refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'strict',
+        sameSite: 'lax',
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
@@ -135,6 +163,7 @@ export const login = asyncHandler(async (req: Request, res: Response): Promise<v
         },
     };
 
+    console.log('✅ Login successful, sending response');
     res.json(response);
 });
 
